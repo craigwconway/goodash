@@ -1,0 +1,9 @@
+[photos]
+album_id = ""
+
+[sheets]
+sheet_id = ""
+cell_range = ""
+
+[calendar]
+calendar_id = ""
