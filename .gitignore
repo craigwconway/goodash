@@ -4,3 +4,5 @@ token.json
 slideshow/
 venv/
 config.toml
+calendar.js
+photos.js
