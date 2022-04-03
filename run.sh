@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
 
-source venv/bin/activate
-python app.py
+cd /home/pi/share/goodash
+. venv/bin/activate
+python app.py > run.log

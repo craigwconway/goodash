@@ -12,14 +12,6 @@ import requests
 import toml
 
 
-logging.basicConfig(
-    filename="run.log",
-    format="%(asctime)s %(levelname)-8s %(module)s %(message)s",
-    level=logging.INFO,
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger(__name__)
-
 config = toml.load("config.toml")
 ALBUM_ID = config["photos"]["album_id"]
 SHEET_ID = config["sheets"]["sheet_id"]
@@ -44,35 +36,42 @@ def get_photos(creds):
         "photoslibrary", "v1", http=creds.authorize(Http()), static_discovery=False
     )
 
-    results = (
-        google_photos.mediaItems()
-        .search(
-            body={
-                # Goodash album
-                "albumId": ALBUM_ID,
-                "pageSize": 100,  # max = 100
-            }
+    photos = []
+    pageToken = "First"
+    while pageToken:
+        if pageToken == "First":
+            pageToken = ""
+        results = (
+            google_photos.mediaItems()
+            .search(
+                body={
+                    "albumId": ALBUM_ID, # Goodash album
+                    "pageSize": 100,  # max = 100
+                    "pageToken": pageToken,
+                }
+            )
+            .execute()
         )
-        .execute()
-    )
-
-    items = results.get("mediaItems", [])
-    logger.info(f"Found {len(items)} photos...")
-    for item in items:
-        url = item["baseUrl"]
-        filename = "templates/img/slideshow/" + item["filename"]
-        if not exists(filename):
-            r = requests.get(url)
-            with open(filename, "wb") as f:
-                f.write(r.content)
-                f.close()
-
-    files = ["img/slideshow/" + file for file in listdir("templates/img/slideshow/")]
+        pageToken = results.get("nextPageToken", "")
+        items = results.get("mediaItems", [])
+        print(f"Found {len(items)} photos...")
+        for item in items:
+            url = item["baseUrl"]
+            filename = "templates/img/slideshow/" + item["filename"]
+            # save to local file
+            if not exists(filename):
+                r = requests.get(url)
+                with open(filename, "wb") as f:
+                    f.write(r.content)
+                    f.close()
+    
+    # update dashboard list
+    photos = ["img/slideshow/" + file for file in listdir("templates/img/slideshow/")]
     with open("templates/js/photos.js", "w") as f:
-        f.write(f"var photos = {json.dumps(files, indent=4)};")
+        f.write(f"var photos = {json.dumps(photos, indent=4)};")
         f.close()
 
-    logger.info("Photo sync complete.")
+    print("Photo sync complete.")
 
 
 def get_sheets(creds):
@@ -82,7 +81,7 @@ def get_sheets(creds):
         result = sheet.values().get(spreadsheetId=SHEET_ID, range=CELL_RANGE).execute()
         values = result.get("values", [])
         if not values:
-            logger.info("No data found.")
+            print("No data found.")
             return
         for row in values:
             print("%s, %s" % (row[0], row[1]))
@@ -104,7 +103,7 @@ def pretty_time(iso_date: str, is_start: bool):
 def get_calendar(creds):
     try:
         service = build("calendar", "v3", credentials=creds)
-        t0 = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=12)
+        t0 = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=6)
         t1 = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=36)
 
         events_list = (
@@ -119,7 +118,7 @@ def get_calendar(creds):
             .execute()
         )
         events = events_list.get("items", [])
-        logger.info(f"Found {len(events)} events...")
+        print(f"Found {len(events)} events...")
 
         calendar = []
         for event in events:
@@ -143,19 +142,19 @@ def get_calendar(creds):
             f.close()
 
     except Exception as e:
-        logger.error(e)
+        print(e)
 
-    logger.info("Calendar sync complete.")
+    print("Calendar sync complete.")
 
 
 def main():
     now = datetime.datetime.now()
-    logger.info("Starting...")
-    # get_photos(creds)
+    print("Starting...")
+    get_photos(creds)
     get_calendar(creds)
     # get_sheets(creds)
 
-    logger.info("Done.")
+    print("Done.")
 
 
 if __name__ == "__main__":
