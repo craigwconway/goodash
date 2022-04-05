@@ -25,12 +25,6 @@
       padding: 4px;
     }
 
-    img.photo {
-      max-width: 100%;
-      max-height: 100%;
-      min-height: 100%;
-    }
-
     svg {
       display: block;
       margin: auto;
@@ -322,13 +316,14 @@
   </div>
 
   <!-- photo -->
-  <div id="col-right" style="position: fixed; height: 100%; width: 70%; top:0; right: 0; text-align: center;">
+  <div id="col-right" style="position: fixed; width: 70%; top:0; right: 0; text-align: center; overflow: hidden;">
     <img class="photo" id="photo" src="img/slideshow/IMG_1369.jpeg">
 
     <script src="js/photos.js"></script>
     <script>
-      random = Math.floor(Math.random() * photos.length);
-      document.getElementById("photo").src = photos[random];
+      rPhoto = Math.floor(Math.random() * photos.length);
+      document.getElementById("photo").src = photos[rPhoto];
+      document.getElementById("photo").style.height = window.innerHeight + "px";
     </script>
 
   </div>
